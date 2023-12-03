@@ -7,7 +7,7 @@ import SDL.Video.Renderer (Surface,Texture,SurfacePixelFormat(..),Rectangle(..),
                           ,lockSurface,unlockSurface,surfacePixels,surfaceFormat,createRGBSurfaceFrom)
 import SDL (($=))
 import SDL.Vect (Point(P),V2(..))
-import Foreign.Ptr (Ptr(..),castPtr)
+import Foreign.Ptr (castPtr)
 import Foreign.ForeignPtr (newForeignPtr_)
 import Data.Vector.Storable.Mutable (unsafeFromForeignPtr0)
 import Control.Monad.IO.Class (MonadIO)
