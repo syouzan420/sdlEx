@@ -2,7 +2,7 @@ module Event (inputEvent) where
 
 import SDL.Input.Keyboard.Codes
 import MySDL.Input (input)
-import MyData (World,Input(..))
+import MyData (Input(..))
 
 inputEvent :: IO Input
 inputEvent = do
