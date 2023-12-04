@@ -27,41 +27,52 @@ draw :: Renderer -> [Surface] -> IO ()
 draw re imageS = do
   imageTO <- mapM (createTextureFromSurface re) imageS
   let imageS0 = head imageS
+
   -- メモリ操作のため surfaceをロックする
   lockSurface imageS0
+
   -- surfaceのPixelForat情報があるポインタを取得
   SurfacePixelFormat pointerPixFormat <- surfaceFormat imageS0
+
   -- ポインタ（アドレス）の情報を読む
   surPixFormat <- peek pointerPixFormat
+
   -- このPixelFormatは SDL.Raw.Type で定義されてゐるもので
   -- pixelFormatFormat といふデータに SDL.Video.Renderer で定義される PixelFormat の情報が
   -- Word32といふ型で格納されてゐる
   -- これは print で表示すると 整数なのだが これを fromNumber で PixelFormatの形式に變換する
   let sPixFormat = fromNumber (SDLT.pixelFormatFormat surPixFormat) :: PixelFormat
+
   -- イメージのsurfaceのピクセル情報が格納されてゐるアドレスを得る（ポインタ）
   pointer0 <- surfacePixels imageS0
+
   -- データからsurfaceをつくるためには IOVector Word8 といふ型でデータを保持しなければならない
   -- IOVector は MVector (PrimState IO) と同義であり
   -- surfacePixels函數で得られる Ptr () を castPtr で Ptr Word8 へ變換し
   -- Ptr Word8 を newForeignPtr_ で ForeignPtr Word8 へ變換する
   frPointer <- newForeignPtr_ (castPtr pointer0)
+
   -- イメージの1ピクセルは 4つのWord8（0〜255）のデータで表される
   -- Word8の総数は 4*64*64 となる (64*64ピクセルだから)
   -- この長さを ポインタを起点としたアドレスから讀み込み MVector型のデータを得る
   let mvector = VM.unsafeFromForeignPtr0 frPointer (4*64*64) :: (VM.MVector (VM.PrimState IO) Word8)
+
   -- ロックを解除
   unlockSurface imageS0
-  mvector2 <- VM.clone mvector
-  mapM_ (\y -> mapM_ (\x -> sfl4x4 mvector2 (V2 x y)) [0..15]) [0..15]
 
---  four <- take4x4 mvector2 (V2 1 1)
---  four2 <- shuffleList four
---  put4x4 mvector2 four2 (V2 1 1)
---  print four
+  -- mvector のクローンを作成
+  -- mvectorを書き替えると imageS0 の内容がそのまま書き替はる
+  -- surface が變更されると 表示してゐたtextureも變はる
+  mvector2 <- VM.clone mvector
+
+  -- 4x4のピクセルを單位として ランダムにピクセル情報を變更する
+  -- 水の中にあるやうな効果を出すことができた
+  mapM_ (\y -> mapM_ (\x -> sfl4x4 mvector2 (V2 x y)) [0..15]) [0..15]
 
   -- MVector Word8 型のデータ, surfaceのサイズ, ピッチ(1行のピクセル(64px)のバイト數),
   -- そして 先程求めたsPixFormat (このイメージはABGR8888だった)を使い 新たなsurfaceをつくる
   newImageS0 <- createRGBSurfaceFrom mvector2 (V2 64 64) (4*64) sPixFormat
+
   newImageT <- createTextureFromSurface re newImageS0
   let imageTextures = imageTO ++ [newImageT]
   initDraw re
