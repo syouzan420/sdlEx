@@ -27,6 +27,7 @@ dependencies:
 - linear
 - mtl 
 - vector
+- random-shuffle
 
 ghc-options:
 - -Wall
