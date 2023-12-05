@@ -56,7 +56,6 @@ draw re imageS = do
   -- Word8の総数は 4*64*64 となる (64*64ピクセルだから)
   -- この長さを ポインタを起点としたアドレスから讀み込み MVector型のデータを得る
   let mvector = VM.unsafeFromForeignPtr0 frPointer (4*64*64) :: (VM.MVector (VM.PrimState IO) Word8)
-
   -- ロックを解除
   unlockSurface imageS0
 
