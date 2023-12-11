@@ -27,6 +27,7 @@ library
   exposed-modules:
       App
       Event
+      Lib
       MyData
       MySDL.Draw
       MySDL.Init

@@ -1,18 +1,19 @@
-module Lib where
+module Lib (cosList, shiftList) where
 
-type Len = Int
-type Amp = Int
-type Count = Int
-type Shift = Int
+type Len = Int      --length
+type Amp = Int      --amplitude
+type Frq = Int      --frequency
+type Count = Int    --count(time)
+type Shift = Int    --shift degrees (right shift (plus) left shift (minus))
 
-cosList :: Len -> Amp -> Count -> [Int]
-cosList l a c = map (\x -> round (fromIntegral a * cos ((2*pi/fromIntegral l)*(fromIntegral x-fromIntegral c)))) [0..(l-1)] 
+cosList :: Len -> Amp -> Frq -> Count -> [Int]
+cosList l a f c = map (\x -> round (fromIntegral a * cos ((2*pi*fromIntegral f/fromIntegral l)*(fromIntegral x-fromIntegral c))::Double)) [0..(l-1)] 
 
-shiftList :: Shift -> [a] -> [a]
-shiftList _ [] = []
-shiftList s lst 
+shiftList :: a -> [a] -> Shift -> [a]
+shiftList _ [] _ = []
+shiftList sp lst s
   | absS > lng = lst
-  | otherwise = if s>0 then replicate s (head lst) ++ take (lng-s) lst
-                       else drop absS lst ++ replicate absS (last lst)
+  | otherwise = if s>0 then replicate s sp ++ take (lng-s) lst
+                       else drop absS lst ++ replicate absS sp 
        where lng = length lst
              absS = abs s

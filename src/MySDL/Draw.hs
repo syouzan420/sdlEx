@@ -16,15 +16,17 @@ import qualified Data.Vector.Storable.Mutable  as VM
 import Control.Monad.IO.Class (MonadIO)
 import System.Random.Shuffle (shuffleM)
 import Data.Word (Word8)
+import Data.List (transpose)
 import MyData (backColor)
+import Lib (cosList, shiftList)
 
 initDraw :: MonadIO m => Renderer -> m ()
 initDraw re = do
   rendererDrawColor re $= backColor
   clear re
 
-draw :: Renderer -> [Surface] -> IO ()
-draw re imageS = do
+draw :: Renderer -> [Surface] -> Int -> IO ()
+draw re imageS counter = do
   imageTO <- mapM (createTextureFromSurface re) imageS
   let imageS0 = head imageS
 
@@ -63,21 +65,38 @@ draw re imageS = do
   -- mvectorを書き替えると imageS0 の内容がそのまま書き替はる
   -- surface が變更されると 表示してゐたtextureも變はる
   mvector2 <- VM.clone mvector
+  mvector3 <- VM.clone mvector
 
   -- 4x4のピクセルを單位として ランダムにピクセル情報を變更する
   -- 水の中にあるやうな効果を出すことができた
   mapM_ (\y -> mapM_ (\x -> sfl4x4 mvector2 (V2 x y)) [0..15]) [0..15]
 
+  vertWave mvector3 counter
+
   -- MVector Word8 型のデータ, surfaceのサイズ, ピッチ(1行のピクセル(64px)のバイト數),
   -- そして 先程求めたsPixFormat (このイメージはABGR8888だった)を使い 新たなsurfaceをつくる
   newImageS0 <- createRGBSurfaceFrom mvector2 (V2 64 64) (4*64) sPixFormat
 
+  newImageS1 <- createRGBSurfaceFrom mvector3 (V2 64 64) (4*64) sPixFormat
+
   newImageT <- createTextureFromSurface re newImageS0
-  let imageTextures = imageTO ++ [newImageT]
+  newImageT1 <- createTextureFromSurface re newImageS1
+
+  let imageTextures = imageTO ++ [newImageT,newImageT1]
   initDraw re
   imageDraw re imageTextures 
   mapM_ destroyTexture imageTextures 
   present re
+
+vertWave :: VM.IOVector Word8 -> Int -> IO ()
+vertWave vect t = do
+  let defs = cosList 64 2 3 t
+  lst <- makeList vect 64 0 (V2 0 0)
+  let tList = transpose lst 
+  let sList = zipWith (shiftList (V4 255 0 0 0)) tList defs 
+  let fList = transpose sList
+  writeList vect fList 0
+
 
 sfl4x4 :: VM.IOVector Word8 -> V2 Int -> IO () 
 sfl4x4 vect pos = do
@@ -111,21 +130,21 @@ writeListX vect ((V4 a b c d):xs) si = do
 take4x4 :: VM.IOVector Word8 -> V2 Int -> IO [[V4 Word8]]
 take4x4 vect (V2 a b) =
   let si = 16*(64*b + a)
-   in makeList vect si (V2 0 0) 
+   in makeList vect 4 si (V2 0 0) 
 
-makeList :: VM.IOVector Word8 -> Int -> V2 Int -> IO [[V4 Word8]]
-makeList _ _ (V2 _ 4) = return []
-makeList vect si (V2 _ q) = do
-  x <- makeListX vect si (V2 0 q)
-  xs <- makeList vect si (V2 0 (q+1))
-  return (x : xs)
+makeList :: VM.IOVector Word8 -> Int -> Int -> V2 Int -> IO [[V4 Word8]]
+makeList vect u si (V2 _ q) = do
+  if q==u then return [] else do
+    x <- makeListX vect u si (V2 0 q)
+    xs <- makeList vect u si (V2 0 (q+1))
+    return (x : xs)
 
-makeListX :: VM.IOVector Word8 -> Int -> V2 Int -> IO [V4 Word8]
-makeListX _ _ (V2 4 _) = return []
-makeListX vect si (V2 p q) = do
-  x <- makeV4 vect (si+pToI (V2 p q))
-  xs <- makeListX vect si (V2 (p+1) q)
-  return (x : xs)
+makeListX :: VM.IOVector Word8 -> Int -> Int -> V2 Int -> IO [V4 Word8]
+makeListX vect u si (V2 p q) = do
+  if p==u then return [] else do
+    x <- makeV4 vect (si+pToI (V2 p q))
+    xs <- makeListX vect u si (V2 (p+1) q)
+    return (x : xs)
 
 makeV4 :: VM.IOVector Word8 -> Int -> IO (V4 Word8)
 makeV4 vect i = do 
