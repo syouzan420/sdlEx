@@ -31,4 +31,4 @@ backColor :: Color
 backColor = V4 182 100 255 255
 
 delayTime :: Word32
-delayTime = 200
+delayTime = 50

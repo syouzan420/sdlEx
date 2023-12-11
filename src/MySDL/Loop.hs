@@ -1,4 +1,4 @@
-module MySDL.Loop where
+module MySDL.Loop (loop) where
 
 import Control.Monad.State.Strict (StateT,get,put)
 import Control.Monad.IO.Class (liftIO)

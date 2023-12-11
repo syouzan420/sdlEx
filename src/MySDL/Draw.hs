@@ -4,7 +4,8 @@ import SDL.Video (Renderer)
 import SDL.Video.Renderer (Surface,Texture,SurfacePixelFormat(..),Rectangle(..),PixelFormat(..)
                           ,rendererDrawColor,clear,destroyTexture
                           ,createTextureFromSurface,copyEx,present
-                          ,lockSurface,unlockSurface,surfacePixels,surfaceFormat,createRGBSurfaceFrom)
+                          ,lockSurface,unlockSurface,surfacePixels
+                          ,surfaceFormat,createRGBSurfaceFrom,freeSurface)
 import SDL (($=))
 import SDL.Vect (Point(P),V2(..),V4(..))
 import SDL.Internal.Numbered (fromNumber)
@@ -82,10 +83,13 @@ draw re imageS counter = do
   newImageT <- createTextureFromSurface re newImageS0
   newImageT1 <- createTextureFromSurface re newImageS1
 
-  let imageTextures = imageTO ++ [newImageT,newImageT1]
+  let newImageSurfaces = [newImageS0, newImageS1]
+  let newImageTextures = [newImageT, newImageT1]
+  let imageTextures = imageTO ++ newImageTextures
   initDraw re
   imageDraw re imageTextures 
   mapM_ destroyTexture imageTextures 
+  mapM_ freeSurface newImageSurfaces
   present re
 
 vertWave :: VM.IOVector Word8 -> Int -> IO ()
@@ -96,7 +100,6 @@ vertWave vect t = do
   let sList = zipWith (shiftList (V4 255 0 0 0)) tList defs 
   let fList = transpose sList
   writeList vect fList 0
-
 
 sfl4x4 :: VM.IOVector Word8 -> V2 Int -> IO () 
 sfl4x4 vect pos = do
